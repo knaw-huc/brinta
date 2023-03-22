@@ -1,4 +1,5 @@
 CURL=curl -LSs
+JSON=-H 'content-type: application/json'
 
 INDEX=brinta
 
@@ -22,7 +23,7 @@ show-logs:
 # index management
 
 create-index:
-	@$(CURL) -XPUT -H 'content-type: application/json' localhost:9200/$(INDEX) -d @mapping.json \
+	@$(CURL) -XPUT $(JSON) localhost:9200/$(INDEX) -d @mapping.json \
 		| jq .
 
 delete-index:
@@ -39,7 +40,7 @@ cat-1728:
 index-1728:
 	@$(CURL) $(URL_1728) \
 		| jq '{text: ._ordered_segments}' \
-		| $(CURL) -XPUT -H 'content-type: application/json' localhost:9200/$(INDEX)/_doc/volume-1728 -d @- \
+		| $(CURL) -XPUT $(JSON) localhost:9200/$(INDEX)/_doc/volume-1728 -d @- \
 		| jq .
 
 delete-1728:
@@ -47,5 +48,5 @@ delete-1728:
 		| jq .
 
 query-1728:
-	@$(CURL) -H 'content-type: application/json' localhost:9200/$(INDEX)/_search -d @query.json \
+	@$(CURL) $(JSON) localhost:9200/$(INDEX)/_search -d @query.json \
 		| jq .
