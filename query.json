@@ -1,0 +1,22 @@
+{
+  "_source": false,
+  "query": {
+    "match": {
+      "text": {
+        "query": "januarii"
+      }
+    }
+  },
+  "highlight": {
+    "fields": {
+      "text": {
+        "type": "experimental",
+        "fragmenter": "none",
+        "number_of_fragments": 10,
+        "options": {
+          "return_offsets": true
+        }
+      }
+    }
+  }
+}

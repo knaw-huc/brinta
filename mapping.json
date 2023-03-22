@@ -1,0 +1,25 @@
+{
+  "mappings": {
+    "properties": {
+      "text": {
+        "type": "text",
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      }
+    }
+  },
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "fulltext_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "lowercase",
+            "type_as_payload"
+          ]
+        }
+      }
+    }
+  }
+}

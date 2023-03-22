@@ -1,0 +1,31 @@
+version: '3.5'
+
+services:
+  brinta:
+    container_name: brinta
+    image: brinta
+    environment:
+      - node.name=br01
+      - cluster.initial_master_nodes=br01
+      - cluster.name=brinta-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - 9200:9200
+    expose:
+      - 9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data01:/usr/share/elasticsearch/data
+    networks:
+      - brinta
+
+networks:
+  brinta:
+
+volumes:
+  data01:
+    driver: local
