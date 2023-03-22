@@ -1,6 +1,6 @@
 CURL=curl -LSs
 
-INDEX=my-index0001
+INDEX=brinta
 
 TR=https://textrepo.republic-caf.diginfra.org/api
 URL_1728=${tr}/task/find/volume-1728/file/contents?type=segmented_text
