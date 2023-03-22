@@ -1,6 +1,6 @@
 CURL=curl -LSs
 JSON=-H 'content-type: application/json'
-
+HOST=localhost:9200
 INDEX=brinta
 
 TR=https://textrepo.republic-caf.diginfra.org/api
@@ -21,13 +21,12 @@ show-logs:
 
 
 # index management
-
 create-index:
-	@$(CURL) -XPUT $(JSON) localhost:9200/$(INDEX) -d @mapping.json \
+	@$(CURL) -XPUT $(JSON) $(HOST)/$(INDEX) -d @mapping.json \
 		| jq .
 
 delete-index:
-	@$(CURL) -XDELETE localhost:9200/$(INDEX) \
+	@$(CURL) -XDELETE $(HOST)/$(INDEX) \
 		| jq .
 
 
@@ -40,13 +39,13 @@ cat-1728:
 index-1728:
 	@$(CURL) $(URL_1728) \
 		| jq '{text: ._ordered_segments}' \
-		| $(CURL) -XPUT $(JSON) localhost:9200/$(INDEX)/_doc/volume-1728 -d @- \
+		| $(CURL) -XPUT $(JSON) $(HOST)/$(INDEX)/_doc/volume-1728 -d @- \
 		| jq .
 
 delete-1728:
-	@$(CURL) -XDELETE localhost:9200/$(INDEX)/_doc/volume-1728 \
+	@$(CURL) -XDELETE $(HOST)/$(INDEX)/_doc/volume-1728 \
 		| jq .
 
 query-1728:
-	@$(CURL) $(JSON) localhost:9200/$(INDEX)/_search -d @query.json \
+	@$(CURL) $(JSON) $(HOST)/$(INDEX)/_search -d @query.json \
 		| jq .
