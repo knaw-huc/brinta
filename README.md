@@ -1,2 +1,2 @@
 # brinta
-BRoccoli INdexer for Texts and Annotations
+BRoccoli INdex for Texts and Annotations
