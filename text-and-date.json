@@ -1,0 +1,31 @@
+{
+  "_source": true,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "date": {
+              "relation": "within",
+              "gte": "1728-01-01",
+              "lte": "1728-06"
+            }
+          }
+        },
+        { "match": { "text": "paarden" } }
+      ]
+    }
+  },
+  "highlight": {
+    "fields": {
+      "text": {
+        "type": "experimental",
+        "fragmenter": "none",
+        "number_of_fragments": 10,
+        "options": {
+          "return_snippets_and_offsets": true
+        }
+      }
+    }
+  }
+}

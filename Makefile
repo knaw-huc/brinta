@@ -1,7 +1,7 @@
 CURL=curl -LSs
 JSON=-H 'content-type: application/json'
 HOST=localhost:9200
-INDEX=brinta
+INDEX=resolutions
 
 TR=https://textrepo.republic-caf.diginfra.org/api
 URL_1728=$(TR)/task/find/volume-1728/file/contents?type=segmented_text
@@ -47,5 +47,9 @@ delete-1728:
 		| jq .
 
 query-1728:
-	@$(CURL) $(JSON) $(HOST)/$(INDEX)/_search -d @query.json \
+	@$(CURL) $(JSON) $(HOST)/$(INDEX)/_search -d @match-query.json \
+		| jq .
+
+query-tanda-1728:
+	@$(CURL) $(JSON) $(HOST)/$(INDEX)/_search -d @text-and-date.json \
 		| jq .

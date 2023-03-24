@@ -1,9 +1,9 @@
 {
-  "_source": false,
+  "_source": true,
   "query": {
-    "match": {
+    "match_phrase_prefix": {
       "text": {
-        "query": "januarii"
+        "query": "hoogh mogende"
       }
     }
   },
@@ -14,7 +14,7 @@
         "fragmenter": "none",
         "number_of_fragments": 10,
         "options": {
-          "return_offsets": true
+          "return_snippets_and_offsets": true
         }
       }
     }

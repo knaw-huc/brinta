@@ -5,6 +5,18 @@
         "type": "text",
         "index_options": "offsets",
         "analyzer": "fulltext_analyzer"
+      },
+      "date": {
+        "type": "date"
+      },
+      "invNr": {
+        "type": "short"
+      },
+      "harvested": {
+        "type": "date"
+      },
+      "propositionType": {
+        "type": "keyword"
       }
     }
   },
