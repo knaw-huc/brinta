@@ -4,7 +4,7 @@ HOST=localhost:9200
 INDEX=brinta
 
 TR=https://textrepo.republic-caf.diginfra.org/api
-URL_1728=${tr}/task/find/volume-1728/file/contents?type=segmented_text
+URL_1728=$(TR)/task/find/volume-1728/file/contents?type=segmented_text
 
 # docker management
 docker-image: Dockerfile
