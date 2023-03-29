@@ -10,6 +10,15 @@ URL_1728=$(TR)/task/find/volume-1728/file/contents?type=segmented_text
 docker-image: Dockerfile
 	docker build -t brinta .
 
+TAG := brinta:latest
+LOCAL_TAG := $(TAG)
+REMOTE_TAG := registry.diginfra.net/tt/$(TAG)
+
+push: docker-image
+	docker build --tag $(LOCAL_TAG) --platform=linux/amd64 --file Dockerfile .
+	docker tag $(LOCAL_TAG) $(REMOTE_TAG)
+	docker push $(REMOTE_TAG)
+
 start-server: docker-image
 	docker-compose up -d
 
