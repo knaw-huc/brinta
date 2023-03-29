@@ -3,7 +3,7 @@
   "query": {
     "match_phrase_prefix": {
       "text": {
-        "query": "hoogh mogende"
+        "query": "van"
       }
     }
   },
@@ -11,7 +11,8 @@
     "fields": {
       "text": {
         "type": "experimental",
-        "fragmenter": "none",
+        "fragmenter": "scan",
+        "fragment_size": 40,
         "number_of_fragments": 10,
         "options": {
           "return_snippets_and_offsets": true

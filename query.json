@@ -1,0 +1,20 @@
+{
+  "bool": {
+    "must": [
+      {
+        "range": {
+          "sessionDate": {
+            "relation": "within",
+            "gte": "1728-01-01",
+            "lte": "1728-06"
+          }
+        }
+      },
+      {
+        "match_phrase_prefix": {
+          "text": "den"
+        }
+      }
+    ]
+  }
+}

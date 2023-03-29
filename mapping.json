@@ -6,14 +6,14 @@
         "index_options": "offsets",
         "analyzer": "fulltext_analyzer"
       },
+      "lengths": {
+        "type": "integer"
+      },
       "date": {
         "type": "date"
       },
       "invNr": {
         "type": "short"
-      },
-      "harvested": {
-        "type": "date"
       },
       "propositionType": {
         "type": "keyword"

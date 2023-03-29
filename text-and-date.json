@@ -5,14 +5,14 @@
       "must": [
         {
           "range": {
-            "date": {
+            "sessionDate": {
               "relation": "within",
               "gte": "1728-01-01",
               "lte": "1728-06"
             }
           }
         },
-        { "match": { "text": "paarden" } }
+        { "match_phrase_prefix": { "text": "den" } }
       ]
     }
   },
@@ -20,7 +20,7 @@
     "fields": {
       "text": {
         "type": "experimental",
-        "fragmenter": "none",
+        "fragmenter": "sentence",
         "number_of_fragments": 10,
         "options": {
           "return_snippets_and_offsets": true
