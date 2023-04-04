@@ -1,0 +1,39 @@
+{
+  "size": 0,
+  "query": {
+    "term": {
+      "bodyType": {
+        "value": "Resolution"
+      }
+    }
+  },
+  "aggs": {
+    "resolutionPropositionTypes": {
+      "terms": {
+        "field": "propositionType",
+        "size": 10
+      }
+    },
+    "resolutionRarePropositionTypes": {
+      "rare_terms": {
+        "field": "propositionType",
+        "max_doc_count": 10
+      }
+    },
+    "resolutionSessionWeekdays": {
+      "terms": { "field": "sessionWeekday"}
+    },
+    "resolutionSessionDates": {
+      "date_histogram": {
+        "field": "sessionDate",
+        "format": "yyyy-MM-dd",
+        "calendar_interval": "month"
+      }
+    },
+    "resolutionMissing": {
+      "missing": {
+        "field": "propositionType"
+      }
+    }
+  }
+}
