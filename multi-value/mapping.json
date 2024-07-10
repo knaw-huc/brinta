@@ -1,0 +1,76 @@
+{
+  "mappings": {
+    "properties": {
+      "text": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      },
+      "bodyType": {
+        "type": "keyword"
+      },
+      "propositionType": {
+        "type": "keyword"
+      },
+      "resolutionType": {
+        "type": "keyword"
+      },
+      "sessionDate": {
+        "type": "date"
+      },
+      "sessionDay": {
+        "type": "byte"
+      },
+      "sessionMonth": {
+        "type": "byte"
+      },
+      "sessionYear": {
+        "type": "short"
+      },
+      "sessionWeekday": {
+        "type": "keyword"
+      },
+      "textType": {
+        "type": "keyword"
+      },
+      "delegateId": {
+        "type": "keyword"
+      },
+      "delegateName": {
+        "type": "keyword"
+      },
+      "entityCategory": {
+        "type": "keyword"
+      },
+      "entityId": {
+        "type": "keyword"
+      },
+      "entityLabels": {
+        "type": "keyword"
+      },
+      "entityName": {
+        "type": "keyword"
+      }
+    }
+  },
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "fulltext_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "lowercase",
+            "type_as_payload"
+          ]
+        }
+      }
+    }
+  }
+}
