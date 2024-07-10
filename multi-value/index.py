@@ -10,7 +10,7 @@ from SparseList import SparseList
 
 # setup annorepo
 annorepo = AnnoRepoClient('https://annorepo.republic-caf.diginfra.org')
-container = annorepo.container_adapter("republic-2024.06.18")
+container = annorepo.container_adapter("republic-2024.07.08")
 print(annorepo.get_about())
 
 # setup elastic
