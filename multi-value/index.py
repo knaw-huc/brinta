@@ -1,4 +1,5 @@
-from typing import List, Dict
+from pathlib import Path
+from typing import List, Dict, Any
 
 from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import Elasticsearch
@@ -8,9 +9,12 @@ from SearchResultAdapter import SearchResultAdapter
 from SearchResultItem import SearchResultItem
 from SparseList import SparseList
 
+# settings
+dataset_name = 'republic-2024.07.08'
+
 # setup annorepo
 annorepo = AnnoRepoClient('https://annorepo.republic-caf.diginfra.org')
-container = annorepo.container_adapter("republic-2024.07.08")
+container = annorepo.container_adapter(dataset_name)
 print(annorepo.get_about())
 
 # setup elastic
@@ -52,6 +56,23 @@ def build_overlapping_types_query(vol: SearchResultItem, types: List[str]):
             }}
 
 
+def create_anno_doc(anno: SearchResultItem) -> Dict[str, Any]:
+    doc = dict()
+
+    metadata_items = [
+        'propositionType', 'resolutionType',
+        'sessionDate', 'sessionDay', 'sessionMonth', 'sessionYear', 'sessionWeekday',
+        'textType'
+    ]
+
+    for it in metadata_items:
+        doc[it] = anno.path(f'body.metadata.{it}')
+
+    doc['bodyType'] = anno.path('body.type')
+
+    return doc
+
+
 def index_annos(volume_annos: Dict[str, List[SearchResultItem]], main_type: str):
     lst = SparseList()
     aux_annos_by_main_anno = dict()
@@ -72,10 +93,28 @@ def index_annos(volume_annos: Dict[str, List[SearchResultItem]], main_type: str)
                     already_added = lst[i]
 
     for main_anno in volume_annos[main_type]:
+        doc_id = main_anno.path('body.id')
+        doc = create_anno_doc(main_anno)
+        resp = elastic.index(index=dataset_name, id=doc_id, document=doc)
+        print(resp)
+        break
         print(f'{main_anno.path('body.id')}: ')
         for aux_anno in aux_annos_by_main_anno[main_anno]:
             print(f' - {aux_anno.path('body.id')}')
 
+
+def create_index(mapping):
+    elastic.indices.create(index=dataset_name, body=mapping)
+
+
+def delete_index():
+    elastic.indices.delete(index=dataset_name)
+
+
+if not elastic.indices.exists(index=dataset_name):
+    path = Path('mapping.json')
+    print(f'Creating ES index: {dataset_name} using: \'{path}\'')
+    create_index(path.read_text())
 
 volume_search = SearchResultAdapter(container, {"body.type": "Volume"})
 volume_count = 0
