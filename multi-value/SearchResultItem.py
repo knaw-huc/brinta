@@ -12,7 +12,10 @@ class SearchResultItem:
     def path(self, path: str) -> Any:
         result = self.values
         for step in path.split('.'):
-            result = result[step]
+            if step in result:
+                result = result[step]
+            else:
+                return None
         return result
 
     def first_target_with_selector(self, text_type: str) -> Dict[str, Any]:
