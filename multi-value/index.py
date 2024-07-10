@@ -36,7 +36,8 @@ def fetch_overlapping_volume_annos(container: ContainerAdapter, vol: SearchResul
     # print(overlapping_anno_search.search_info)
 
     anno_count = 0
-    pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), leave=True, unit="ann")
+    pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), colour='blue', leave=True,
+                unit="ann")
     for anno in pbar:
         pbar.set_description(f'ann: {anno.path('body.id').removeprefix('urn:republic:'):>60}')
         volume_annos[anno.path('body.type')].append(anno)
@@ -133,7 +134,7 @@ def index_annos(volume_annos: dict[str, list[SearchResultItem]], main_type: str)
             session_id = aux_anno.path(bmd('sessionID'))
             aux_annos_by_session_id[session_id].add(aux_anno)
 
-    pbar = tqdm(volume_annos[main_type], leave=True, unit='res')
+    pbar = tqdm(volume_annos[main_type], colour='yellow', leave=True, unit='res')
     for main_anno in pbar:
         doc_id = main_anno.path('body.id')
         pbar.set_description(f'idx: {doc_id:>60}')
@@ -163,7 +164,7 @@ if not elastic.indices.exists(index=dataset_name):
 
 volume_search = SearchResultAdapter(container, {"body.type": "Volume"})
 volume_count = 0
-pbar = tqdm(volume_search.items(), total=volume_search.hits(), unit="vol")
+pbar = tqdm(volume_search.items(), total=volume_search.hits(), colour='green', unit='vol')
 for v in pbar:
     pbar.set_description(f'vol: {v.path('body.id').removeprefix('urn:republic:volume:'):>60}')
     volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Attendant', 'Entity'])
