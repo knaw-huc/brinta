@@ -194,4 +194,3 @@ for v in pbar:
         with gzip.open(path, 'wt') as f:
             f.write(jsonpickle.encode(volume_annos))
     index_annos(volume_annos, 'Resolution')
-    break
