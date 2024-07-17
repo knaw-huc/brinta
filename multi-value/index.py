@@ -1,7 +1,9 @@
 import collections
+import gzip
 from pathlib import Path
 from typing import List, Dict, Any
 
+import jsonpickle
 from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import Elasticsearch
 from tqdm import tqdm
@@ -163,13 +165,33 @@ if not elastic.indices.exists(index=dataset_name):
     create_index(path.read_text())
 
 volume_search = SearchResultAdapter(container, {"body.type": "Volume"})
-volume_count = 0
-pbar = tqdm(volume_search.items(), total=volume_search.hits(), colour='green', unit='vol')
+volume_result = list[SearchResultItem]()
+pbar = tqdm(volume_search.items(), total=volume_search.hits(), colour='magenta', unit='vol')
 for v in pbar:
     pbar.set_description(f'vol: {v.path('body.id').removeprefix('urn:republic:volume:'):>60}')
-    volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Attendant', 'Entity'])
-    index_annos(volume_annos, 'Resolution')
-    volume_count += 1
+    volume_result.append(v)
     # break  # dev limit: stop after first
 
-print(f'indexed {volume_count} volumes')
+print(f'fetched {len(volume_result)} volumes, hash={hash(volume_search)}')
+
+cache = Path('.cache')
+cache.mkdir(exist_ok=True)
+frozen = jsonpickle.encode(volume_result)
+with open(cache / 'volumes', 'w', encoding='utf-8') as f:
+    f.write(frozen)
+
+pbar = tqdm(volume_result, total=len(volume_result), colour='green', unit='vol')
+for v in pbar:
+    body_id = v.path('body.id').removeprefix('urn:republic:volume:')
+    pbar.set_description(f'vol: {body_id:>60}')
+    path = (cache / f'{body_id}.gz')
+    print(path)
+    if path.exists():
+        with gzip.open(path) as f:
+            volume_annos = jsonpickle.decode(f.read())
+    else:
+        volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Attendant', 'Entity'])
+        with gzip.open(path, 'wt') as f:
+            f.write(jsonpickle.encode(volume_annos))
+    index_annos(volume_annos, 'Resolution')
+    break

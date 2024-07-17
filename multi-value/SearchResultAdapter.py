@@ -1,3 +1,4 @@
+import json
 from collections.abc import Generator
 from typing import Dict, Any
 
@@ -10,8 +11,14 @@ class SearchResultAdapter:
 
     def __init__(self, container: ContainerAdapter, query: Dict[str, Any]):
         self.container = container
+        self.query = query
         self.search_info = container.create_search(query)
         self.cached_hits = -1
+
+    def __hash__(self):
+        ser = json.dumps((self.query, self.container.client.base_url), sort_keys=True)
+        print(ser)
+        return hash(ser)
 
     def hits(self) -> int:
         if self.cached_hits == -1:
@@ -37,8 +44,10 @@ class SearchResultAdapter:
 
             if 'next' not in res:
                 break
+
             next_page_url = res['next']
 
             if '?page=' not in next_page_url:
                 break
+
             cur_page = next_page_url.split('?page=')[1]
