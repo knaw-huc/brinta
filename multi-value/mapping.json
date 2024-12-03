@@ -39,23 +39,39 @@
       "textType": {
         "type": "keyword"
       },
-      "delegateId": {
-        "type": "keyword"
+      "delegates": {
+        "type": "nested",
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "name": {
+            "type": "keyword"
+          },
+          "president": {
+            "type": "keyword"
+          },
+          "province": {
+            "type": "keyword"
+          }
+        }
       },
-      "delegateName": {
-        "type": "keyword"
-      },
-      "entityCategory": {
-        "type": "keyword"
-      },
-      "entityId": {
-        "type": "keyword"
-      },
-      "entityLabels": {
-        "type": "keyword"
-      },
-      "entityName": {
-        "type": "keyword"
+      "entities": {
+        "type": "nested",
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "type": {
+            "type": "keyword"
+          },
+          "name": {
+            "type": "keyword"
+          },
+          "categories": {
+            "type": "keyword"
+          }
+        }
       }
     }
   },
@@ -64,10 +80,9 @@
       "analyzer": {
         "fulltext_analyzer": {
           "type": "custom",
-          "tokenizer": "whitespace",
+          "tokenizer": "standard",
           "filter": [
-            "lowercase",
-            "type_as_payload"
+            "lowercase"
           ]
         }
       }

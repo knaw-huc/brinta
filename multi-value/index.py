@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 import jsonpickle
+import requests
 from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import Elasticsearch
 from tqdm import tqdm
@@ -13,12 +14,14 @@ from SearchResultItem import SearchResultItem
 from SparseList import SparseList
 
 # settings
-# dataset_name = 'republic-2024.06.18'
-dataset_name = 'republic-2024.07.08'
+dataset_name = 'rep-2024.11.30'
+container_name = 'republic-2024.11.30'
+
+tqdm_bar_format = "{l_bar}{bar:20}{r_bar}{bar:-20b}"
 
 # setup annorepo
-annorepo = AnnoRepoClient('https://annorepo.republic-caf.diginfra.org')
-container = annorepo.container_adapter(dataset_name)
+annorepo = AnnoRepoClient('https://annorepo.goetgevonden.nl')
+container = annorepo.container_adapter(container_name)
 print(annorepo.get_about())
 
 # setup elastic
@@ -35,17 +38,19 @@ def fetch_overlapping_volume_annos(container: ContainerAdapter, vol: SearchResul
         volume_annos[t] = list()
 
     overlapping_anno_search = SearchResultAdapter(container, query)
-    # print(overlapping_anno_search.search_info)
+    print(query)
+    print(overlapping_anno_search.search_info)
 
     anno_count = 0
-    pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), colour='blue', leave=True,
-                unit="ann")
-    for anno in pbar:
-        pbar.set_description(f'ann: {anno.path('body.id').removeprefix('urn:republic:'):>60}')
+    # pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), colour='blue', leave=True,
+    #             unit="ann", bar_format=tqdm_bar_format)
+    for anno in overlapping_anno_search.items():
+        # pbar.set_description(f'ann: {anno.path('body.id')[13:-37]:>60}')
         volume_annos[anno.path('body.type')].append(anno)
         anno_count += 1
 
-    assert anno_count == overlapping_anno_search.hits()
+    # AnnoRepo now uses a MongoDB Cursor and has no support for upfront 'size' counting anymore
+    # assert anno_count == overlapping_anno_search.hits()
 
     return volume_annos
 
@@ -84,32 +89,61 @@ def create_anno_doc(anno: SearchResultItem) -> Dict[str, Any]:
 
 def enrich_with_overlapping_annos(doc: dict[str, any], aux_annos: set[SearchResultItem]):
     aux_map = {
-        'entityCategory': bmd('category'),
-        'entityId': bmd('entityID'),
-        'entityLabels': bmd('entityLabels'),
-        'entityName': bmd('name')
+        'id': bmd('entityID'),
+        'type': bmd('category'),
+        'name': bmd('name'),
+        'categories': bmd('entityLabels')
     }
+    entities = list()
     for aux_anno in aux_annos:
         if aux_anno.path('body.type') == 'Entity':
-            for it in aux_map.keys():
-                doc[it] = aux_anno.path(aux_map[it])
+            entity = dict()
+            for key, path in aux_map.items():
+                val = aux_anno.path(path)
+                if val:
+                    entity[key] = val
+            if entity:
+                entities.append(entity)
+    doc['entities'] = dedup(entities)
 
 
 def enrich_with_matching_annos(doc: dict[str, any], aux_annos: set[SearchResultItem]):
-    aux_map = {
-        'delegateId': bmd('delegateID'),
-        'delegateName': bmd('delegateName')
-    }
-    for it in aux_map.keys():
-        doc[it] = list[str]()
+    delegate_fields = {'delegateID', 'name', 'president', 'province'}
+    # print(f'enriching: len={len(aux_annos)}')
+    delegates = list()
     for aux_anno in aux_annos:
-        for it in aux_map.keys():
-            val = aux_anno.path(aux_map[it])
-            if val:
-                doc[it].append(val)
+        for delegate_anno in aux_anno.path(bmd('delegates')):
+            delegate = dict()
+            for key in delegate_fields:
+                if key in delegate_anno:
+                    delegate[key.replace('delegateID', 'id')] = delegate_anno[key]
+            if len(delegate) > 0:
+                delegates.append(delegate)
+    doc['delegates'] = dedup(delegates)
 
 
-def index_annos(volume_annos: dict[str, list[SearchResultItem]], main_type: str):
+def dedup(orig: list[dict[str, any]]) -> list[dict[str, any]]:
+    # return [dict(s) for s in set(frozenset(d.items()) for d in lst)]
+    return list({str(i): i for i in orig}.values())
+
+
+def extract_text(anno: SearchResultItem, all_text: list[str]) -> str:
+    selector = anno.first_target_with_selector('LogicalText')['selector']
+    local_text_segments = all_text[selector['start']:selector['end'] + 1]
+    if 'beginCharOffset' in selector:
+        begin_char_offset = selector['beginCharOffset']
+        local_text_segments[0] = local_text_segments[0][begin_char_offset:]
+        print(f'beginCharOffset found: {selector} -> {local_text_segments[0]}')
+    if 'endCharOffset' in selector:
+        end_char_offset = selector['endCharOffset']
+        local_text_segments[-1] = local_text_segments[-1][:end_char_offset + 1]
+        print(f'endCharOffset found: {selector} -> {local_text_segments[-1]}')
+    local_text = "".join(local_text_segments)
+    # print(f'{selector} -> {local_text}')
+    return local_text
+
+
+def index_annos(volume_annos: dict[str, list[SearchResultItem]], main_type: str, volume_text_segments: list[str]):
     lst = SparseList()
     overlapping_annos_by_main_anno = dict()
     for main_anno in volume_annos[main_type]:
@@ -123,6 +157,7 @@ def index_annos(volume_annos: dict[str, list[SearchResultItem]], main_type: str)
     for aux_type in ['Entity']:  # only for volume_annos.keys() that need overlap
         for aux_anno in volume_annos[aux_type]:
             selector = aux_anno.first_target_with_selector('LogicalText')['selector']
+            # print(f'  -> found entity: {aux_anno.path('body.id')}, range=[{selector['start']}..{selector['end']}]')
             just_checked = None
             for i in range(selector['start'], selector['end'] + 1):
                 if lst[i] is not None and lst[i] != just_checked:
@@ -131,19 +166,22 @@ def index_annos(volume_annos: dict[str, list[SearchResultItem]], main_type: str)
 
     aux_annos_by_session_id = collections.defaultdict(set[SearchResultItem])
     # for aux_type in [k for k in volume_annos.keys() if k != main_type]:
-    for aux_type in ['Attendant']:  # only for volume_annos.keys() that need to match
+    for aux_type in ['Session']:  # only for volume_annos.keys() that need to match
         for aux_anno in volume_annos[aux_type]:
-            session_id = aux_anno.path(bmd('sessionID'))
+            # session_id = aux_anno.path(bmd('sessionID'))
+            session_id = aux_anno.path('body.id').replace(':session:session', ':session')
             aux_annos_by_session_id[session_id].add(aux_anno)
 
-    pbar = tqdm(volume_annos[main_type], colour='yellow', leave=True, unit='res')
+    pbar = tqdm(volume_annos[main_type], colour='yellow', leave=True, unit='res', bar_format=tqdm_bar_format)
     for main_anno in pbar:
         doc_id = main_anno.path('body.id')
         pbar.set_description(f'idx: {doc_id:>60}')
+        # print(f'main_anno: {main_anno.path('body.id')}, sessionID={main_anno.path(bmd('sessionID'))}')
         doc = create_anno_doc(main_anno)
         enrich_with_overlapping_annos(doc, overlapping_annos_by_main_anno[main_anno])
         session_id = main_anno.path(bmd('sessionID'))
         enrich_with_matching_annos(doc, aux_annos_by_session_id[session_id])
+        doc['text'] = extract_text(main_anno, volume_text_segments)
 
         # now send doc to elastic
         resp = elastic.index(index=dataset_name, id=doc_id, document=doc)
@@ -166,13 +204,10 @@ if not elastic.indices.exists(index=dataset_name):
 
 volume_search = SearchResultAdapter(container, {"body.type": "Volume"})
 volume_result = list[SearchResultItem]()
-pbar = tqdm(volume_search.items(), total=volume_search.hits(), colour='magenta', unit='vol')
+pbar = tqdm(volume_search.items(), total=volume_search.hits(), colour='magenta', unit='vol', bar_format=tqdm_bar_format)
 for v in pbar:
     pbar.set_description(f'vol: {v.path('body.id').removeprefix('urn:republic:volume:'):>60}')
     volume_result.append(v)
-    # break  # dev limit: stop after first
-
-print(f'fetched {len(volume_result)} volumes, hash={hash(volume_search)}')
 
 cache = Path('.cache')
 cache.mkdir(exist_ok=True)
@@ -183,14 +218,27 @@ with open(cache / 'volumes', 'w', encoding='utf-8') as f:
 pbar = tqdm(volume_result, total=len(volume_result), colour='green', unit='vol')
 for v in pbar:
     body_id = v.path('body.id').removeprefix('urn:republic:volume:')
+    # if not body_id.endswith('3166'):
+    #     print(f'SKIP: {body_id}')
+    #     continue
     pbar.set_description(f'vol: {body_id:>60}')
+
+    # prefetch all text segments for entire volume
+    volume_text_target = v.first_target_without_selector('LogicalText')
+    r = requests.get(volume_text_target['source'])
+    if r.status_code == 200:
+        volume_text_segments = r.json()
+    else:
+        print(f'Failed to get text for: {v.path('body.id')}')
+        break
+
     path = (cache / f'{body_id}.gz')
-    print(path)
     if path.exists():
         with gzip.open(path) as f:
             volume_annos = jsonpickle.decode(f.read())
     else:
-        volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Attendant', 'Entity'])
+        # print(f'Fetching overlapping annos for volume: {v.path('body.id')}')
+        volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Entity', 'Session'])
         with gzip.open(path, 'wt') as f:
             f.write(jsonpickle.encode(volume_annos))
-    index_annos(volume_annos, 'Resolution')
+    index_annos(volume_annos, 'Resolution', volume_text_segments)
