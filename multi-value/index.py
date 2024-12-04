@@ -217,12 +217,15 @@ frozen = jsonpickle.encode(volume_result)
 with open(cache / 'volumes', 'w', encoding='utf-8') as f:
     f.write(frozen)
 
+done_skipping = False
 pbar = tqdm(volume_result, total=len(volume_result), colour='green', unit='vol')
 for v in pbar:
     body_id = v.path('body.id').removeprefix('urn:republic:volume:')
-    # if not body_id.endswith('3166'):
-    #     print(f'SKIP: {body_id}')
-    #     continue
+    if not body_id.endswith('4596') and not done_skipping:
+        print(f'SKIP: {body_id}')
+        continue
+    else:
+        done_skipping = True
     pbar.set_description(f'vol: {body_id:>60}')
 
     # prefetch all text segments for entire volume
