@@ -1,5 +1,7 @@
 import collections
 import gzip
+import logging
+import traceback
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -237,8 +239,14 @@ for v in pbar:
         with gzip.open(path) as f:
             volume_annos = jsonpickle.decode(f.read())
     else:
-        # print(f'Fetching overlapping annos for volume: {v.path('body.id')}')
-        volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Entity', 'Session'])
+        while True:
+            try:
+                print(f'Fetching overlapping annos for volume: {v.path('body.id')}')
+                volume_annos = fetch_overlapping_volume_annos(container, v, ['Resolution', 'Entity', 'Session'])
+                break
+            except Exception as e:
+                logging.error(traceback.format_exc())
+
         with gzip.open(path, 'wt') as f:
             f.write(jsonpickle.encode(volume_annos))
     index_annos(volume_annos, 'Resolution', volume_text_segments)
