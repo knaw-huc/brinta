@@ -200,9 +200,9 @@ def delete_index():
 
 
 if not elastic.indices.exists(index=dataset_name):
-    path = Path('mapping.json')
-    print(f'Creating ES index: {dataset_name} using: \'{path}\'')
-    create_index(path.read_text())
+    mapping = Path('mapping.json')
+    print(f'Creating ES index: {dataset_name} using: \'{mapping}\'')
+    create_index(mapping.read_text())
 
 volume_search = SearchResultAdapter(container, {"body.type": "Volume"})
 volume_result = list[SearchResultItem]()
@@ -237,9 +237,9 @@ for v in pbar:
         print(f'Failed to get text for: {v.path('body.id')}')
         break
 
-    path = (cache / f'{body_id}.gz')
-    if path.exists():
-        with gzip.open(path) as f:
+    cached = (cache / f'{body_id}.gz')
+    if cached.exists():
+        with gzip.open(cached) as f:
             volume_annos = jsonpickle.decode(f.read())
     else:
         while True:
@@ -250,6 +250,6 @@ for v in pbar:
             except Exception as e:
                 logging.error(traceback.format_exc())
 
-        with gzip.open(path, 'wt') as f:
+        with gzip.open(cached, 'wt') as f:
             f.write(jsonpickle.encode(volume_annos))
     index_annos(volume_annos, 'Resolution', volume_text_segments)
